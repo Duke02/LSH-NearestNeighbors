@@ -2,8 +2,6 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use itertools::Itertools;
-
 use crate::lsh::Lsh;
 
 mod lsh;
@@ -56,8 +54,8 @@ fn main() {
         collection.insert(embedding);
     }
 
-    let query_string = "Romeo, Romeo, where you at Romeo? \
-Did you just flip me off my guy? \
+    let query_string = "Romeo, Romeo, where you at, Romeo? \
+Did you just flip me off, my guy? \
 Yeah and? What you gonna do about it, scrub? \
 But daddy I love him!";
 
@@ -66,7 +64,7 @@ But daddy I love him!";
     println!("Collection has a total size of {}", collection.len());
 
     for (i, embedding) in query_embeddings.iter().enumerate() {
-        let neighbors = collection.nearest_neighbors(&embedding);
+        let neighbors = collection.nearest_neighbors(embedding);
         match neighbors {
             None => println!("No neighbors found for query #{i}!"),
             Some(n) => println!("{} neighbors found for query #{i}!", n.len()),
