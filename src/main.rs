@@ -43,7 +43,7 @@ fn main() {
     input_file.read_to_string(&mut input).unwrap();
 
     const MAX_LENGTH: usize = 10;
-    const NUM_BITS: u8 = 8;
+    const NUM_BITS: u8 = 16;
 
     let data = convert_doc_to_f32(
         &input.lines().into_iter().map(|s| s.to_string()).collect(),
@@ -56,7 +56,27 @@ fn main() {
         collection.insert(embedding);
     }
 
+    let query_string = "Romeo, Romeo, where you at Romeo? \
+Did you just flip me off my guy? \
+Yeah and? What you gonna do about it, scrub? \
+But daddy I love him!";
 
+    let query_embeddings = convert_doc_to_f32(&query_string.to_string(), MAX_LENGTH);
 
+    println!("Collection has a total size of {}", collection.len());
+
+    for (i, embedding) in query_embeddings.iter().enumerate() {
+        let neighbors = collection.nearest_neighbors(&embedding);
+        match neighbors {
+            None => println!("No neighbors found for query #{i}!"),
+            Some(n) => println!("{} neighbors found for query #{i}!", n.len()),
+        }
+
+        let closest_neighbor = collection.closest_neighbor(embedding);
+        match closest_neighbor {
+            None => println!("No closest neighbor found for query #{i}!"),
+            Some(c) => println!("Closest neighbor to query #{i} had a sum of {}!", c.iter().sum::<f32>()),
+        }
+    }
 
 }

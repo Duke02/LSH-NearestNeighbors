@@ -39,6 +39,10 @@ impl Lsh {
         self.num_hashes == 0
     }
 
+    pub fn len(&self) -> usize {
+        self.num_hashes
+    }
+
     fn hash(&self, object: &Vec<f32>) -> usize {
         self.projection_matrix
             .iter()
