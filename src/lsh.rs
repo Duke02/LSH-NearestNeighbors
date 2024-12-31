@@ -1,5 +1,5 @@
 use rand::{thread_rng, Rng};
-use std::hash::Hash;
+use itertools::{Itertools, MinMaxResult};
 
 pub struct Lsh {
     buckets: Vec<Vec<Vec<f32>>>,
@@ -22,8 +22,9 @@ fn distance(one: &Vec<f32>, two: &Vec<f32>) -> f32 {
 }
 
 impl Lsh {
-    pub fn new(num_buckets: usize, num_dimensions: usize, num_bits: usize) -> Self {
+    pub fn new(num_dimensions: usize, num_bits: u8) -> Self {
         let mut rng = thread_rng();
+        let num_buckets: usize = 2 << num_bits as usize;
         Self {
             num_buckets,
             buckets: vec![vec![]; num_buckets],
@@ -96,10 +97,15 @@ impl Lsh {
         }
         let neighbors = self.nearest_neighbors(object);
         match neighbors {
-            Some(neighbors) => match neighbors.iter().min_by_key(distance) {
-                None => None,
-                Some(neighbor) => Some(neighbor.to_vec()),
-            },
+            Some(neighbors) => {
+                let distances = neighbors.iter().map(|n| distance(object, &n)).collect_vec();
+                let closest_index = match distances.iter().position_minmax() {
+                    MinMaxResult::NoElements => {return None;},
+                    MinMaxResult::OneElement(i) => i,
+                    MinMaxResult::MinMax(mini, _) => mini,
+                };
+                Some(neighbors[closest_index].clone())
+            }
             None => None,
         }
     }
