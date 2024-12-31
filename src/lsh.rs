@@ -1,5 +1,4 @@
 use rand::{thread_rng, Rng};
-use std::collections::HashMap;
 use std::hash::Hash;
 
 pub struct Lsh {
@@ -75,7 +74,9 @@ impl Lsh {
                 while ((index - radius) > 0) || ((index + radius) < self.num_buckets) {
                     if (index - radius) > 0 && self.buckets[index - radius].len() > 0 {
                         return self.buckets[index - radius].clone();
-                    } else if (index + radius) < self.num_buckets && self.buckets[index + radius].len() > 0 {
+                    } else if (index + radius) < self.num_buckets
+                        && self.buckets[index + radius].len() > 0
+                    {
                         return self.buckets[index + radius].clone();
                     } else {
                         radius += 1;
@@ -84,7 +85,7 @@ impl Lsh {
                 // Since we do the "Are we empty" check above,
                 // it should never reach this but just in case.
                 vec![]
-            },
+            }
             _ => self.buckets[index].clone(),
         }
     }
