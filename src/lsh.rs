@@ -60,9 +60,9 @@ impl Lsh {
         self.buckets[index].push(object);
     }
 
-    pub fn nearest_neighbors(&self, object: &Vec<f32>) -> Vec<Vec<f32>> {
+    pub fn nearest_neighbors(&self, object: &Vec<f32>) -> Option<Vec<Vec<f32>>> {
         if self.is_empty() {
-            return vec![];
+            return None;
         }
 
         let index = self.get_index(object);
@@ -73,31 +73,34 @@ impl Lsh {
                 let mut radius: usize = 1;
                 while ((index - radius) > 0) || ((index + radius) < self.num_buckets) {
                     if (index - radius) > 0 && self.buckets[index - radius].len() > 0 {
-                        return self.buckets[index - radius].clone();
+                        return Some(self.buckets[index - radius].clone());
                     } else if (index + radius) < self.num_buckets
                         && self.buckets[index + radius].len() > 0
                     {
-                        return self.buckets[index + radius].clone();
+                        return Some(self.buckets[index + radius].clone());
                     } else {
                         radius += 1;
                     }
                 }
                 // Since we do the "Are we empty" check above,
                 // it should never reach this but just in case.
-                vec![]
+                None
             }
-            _ => self.buckets[index].clone(),
+            _ => Some(self.buckets[index].clone()),
         }
     }
 
-    pub fn closest_neighbor(&self, object: &Vec<f32>) -> Vec<f32> {
+    pub fn closest_neighbor(&self, object: &Vec<f32>) -> Option<Vec<f32>> {
         if self.is_empty() {
-            return vec![];
+            return None;
         }
         let neighbors = self.nearest_neighbors(object);
-        match neighbors.iter().min_by_key(distance) {
-            None => vec![],
-            Some(neighbor) => neighbor.to_vec(),
+        match neighbors {
+            Some(neighbors) => match neighbors.iter().min_by_key(distance) {
+                None => None,
+                Some(neighbor) => Some(neighbor.to_vec()),
+            },
+            None => None,
         }
     }
 }
