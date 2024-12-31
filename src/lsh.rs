@@ -65,6 +65,30 @@ impl Lsh {
         self.buckets[index].push(object);
     }
 
+    pub fn contains(&self, object: &Vec<f32>) -> bool {
+        if self.is_empty() {
+            return false;
+        }
+        let index = self.get_index(object);
+        let bucket = &self.buckets[index];
+        if bucket.is_empty() {
+            return false;
+        }
+        bucket.contains(&object)
+    }
+
+    pub fn remove(&mut self, object: &Vec<f32>) {
+        if self.is_empty() {
+            panic!("Tried to remove an object from an empty LSH.");
+        }
+        if !self.contains(object) {
+            panic!("Tried to remove an object that doesn't exist in this LSH.");
+        }
+
+        let index = self.get_index(object);
+        self.buckets[index].remove(index);
+    }
+
     pub fn nearest_neighbors(&self, object: &Vec<f32>) -> Option<Vec<Vec<f32>>> {
         if self.is_empty() {
             return None;
