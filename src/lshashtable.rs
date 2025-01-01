@@ -79,8 +79,10 @@ impl<H: LSHash> LSHashTable<H> {
                 // Ping-Pong from before the index to after
                 // until we find the closest set of neighbors.
                 let mut radius: usize = 1;
-                while ((index - radius) > 0) || ((index + radius) < self.num_buckets) {
-                    if (index - radius) > 0 && self.buckets[index - radius].len() > 0 {
+                while (index >= radius && (index - radius) >= 0) || ((index + radius) < self.num_buckets) {
+                    if index >= radius && (index - radius) >= 0
+                        && self.buckets[index - radius].len() > 0
+                    {
                         return Some(self.buckets[index - radius].clone());
                     } else if (index + radius) < self.num_buckets
                         && self.buckets[index + radius].len() > 0
