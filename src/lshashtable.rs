@@ -9,7 +9,7 @@ pub struct LSHashTable<H: LSHash> {
 }
 
 impl<H: LSHash> LSHashTable<H> {
-    pub fn new(hasher: H, num_dimensions: usize, num_bits: u8) -> Self {
+    pub fn new(hasher: H, num_bits: u8) -> Self {
         let num_buckets: usize = 2 << num_bits as usize;
         Self {
             num_buckets,

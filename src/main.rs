@@ -52,7 +52,7 @@ fn main() {
 
     let euclidean_hasher = lshash::EuclideanHash::new_with_optimal_bin_width(NUM_BITS, &data);
 
-    let mut collection = LSHashTable::new(euclidean_hasher, MAX_LENGTH, NUM_BITS);
+    let mut collection = LSHashTable::new(euclidean_hasher, NUM_BITS);
 
     for embedding in data {
         collection.insert(embedding);
