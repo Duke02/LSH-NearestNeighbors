@@ -38,6 +38,12 @@ impl<H: LSHash> LSHashTable<H> {
         self.buckets[index].push(object);
     }
 
+    pub fn bulk_insert(&mut self, data: Vec<Vec<f32>>) {
+        for vec in data {
+            self.insert(vec);
+        }
+    }
+
     pub fn contains(&self, object: &Vec<f32>) -> bool {
         if self.is_empty() {
             return false;
