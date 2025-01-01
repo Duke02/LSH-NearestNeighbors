@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use rand::{thread_rng, Rng};
 
-use crate::utils::dot;
+use crate::utils::{dot, magnitude, to_unit_vector};
 
 pub trait LSHash {
     fn hash(&self, data: &Vec<f32>) -> usize;
@@ -79,17 +79,30 @@ impl CosineHash {
     pub fn new(num_bits: u8, num_dimensions: usize) -> Self {
         let mut rng = thread_rng();
         Self {
-            projection_matrix: create_hyperplane(num_dimensions, num_bits, &mut rng),
+            projection_matrix: create_hyperplane(num_dimensions, num_bits, &mut rng)
+                .iter()
+                .map(to_unit_vector)
+                .collect(),
         }
     }
 }
 
 impl LSHash for CosineHash {
     fn hash(&self, data: &Vec<f32>) -> usize {
-        todo!()
+        let normed_data = to_unit_vector(data);
+        self.projection_matrix
+            .iter()
+            .map(|proj| dot(&normed_data, proj))
+            .map(|r| r > 0.0)
+            .map(|b| if b { 1 } else { 0 })
+            .enumerate()
+            .map(|(i, b)| b << i)
+            .sum()
     }
 
     fn distance(&self, one: &Vec<f32>, two: &Vec<f32>) -> f32 {
-        todo!()
+        let mag_one = magnitude(one);
+        let mag_two = magnitude(two);
+        1.0 - (dot(one, two) / (mag_one * mag_two))
     }
 }
