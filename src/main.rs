@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-
+use crate::lshash::LSHash;
 use crate::lshashtable::LSHashTable;
 
 mod lshash;
@@ -30,6 +30,34 @@ fn convert_doc_to_f32(text: &String, max_len: usize) -> Vec<Vec<f32>> {
     out
 }
 
+fn test_neighbors<H: LSHash>(collection: &LSHashTable<H>, i: usize, embedding: &Vec<f32>) {
+    let neighbors = collection.nearest_neighbors(embedding);
+    match neighbors {
+        None => println!("No neighbors found for query #{i}!"),
+        Some(n) => println!("{} neighbors found for query #{i}!", n.len()),
+    }
+}
+
+fn test_k_neighbors<H: LSHash>(collection: &LSHashTable<H>, i: usize, embedding: &Vec<f32>) {
+    let k = 5;
+    let neighbors = collection.top_k_neighbors(embedding, k);
+    match neighbors {
+        None => println!("No neighbors found for query #{i} with k={k}!"),
+        Some(n) => println!("{} neighbors found for query #{i} with k={k}!", n.len()),
+    }
+}
+
+fn test_closest_neighbor<H: LSHash>(collection: &LSHashTable<H>, i: usize, embedding: &Vec<f32>) {
+    let closest_neighbor = collection.closest_neighbor(embedding);
+    match closest_neighbor {
+        None => println!("No closest neighbor found for query #{i}!"),
+        Some(c) => println!(
+            "Closest neighbor to query #{i} had a sum of {}!",
+            c.iter().sum::<f32>()
+        ),
+    }
+}
+
 fn main() {
     let input_path = Path::new("./data/romeo_juliet.txt");
     let mut input_file = match File::open(&input_path) {
@@ -45,18 +73,23 @@ fn main() {
     const MAX_LENGTH: usize = 10;
     const NUM_BITS: u8 = 16;
 
-    let data = convert_doc_to_f32(
+    println!("Gathering data...");
+    let euclidean_data = convert_doc_to_f32(
         &input.lines().into_iter().map(|s| s.to_string()).collect(),
         MAX_LENGTH,
     );
+    let cosine_data = euclidean_data.clone();
 
-    let euclidean_hasher = lshash::EuclideanHash::new_with_optimal_bin_width(NUM_BITS, &data);
+    println!("Creating hashers and collections...");
+    let euclidean_hasher = lshash::EuclideanHash::new_with_optimal_bin_width(NUM_BITS, &euclidean_data[0..f32::sqrt(euclidean_data.len() as f32) as usize].to_vec());
+    let mut euclidean_collection = LSHashTable::new(euclidean_hasher, NUM_BITS);
 
-    let mut collection = LSHashTable::new(euclidean_hasher, NUM_BITS);
+    let cosine_hasher = lshash::CosineHash::new(NUM_BITS, MAX_LENGTH);
+    let mut cosine_collection = LSHashTable::new(cosine_hasher, NUM_BITS);
 
-    for embedding in data {
-        collection.insert(embedding);
-    }
+    println!("Inserting...");
+    euclidean_collection.bulk_insert(euclidean_data);
+    cosine_collection.bulk_insert(cosine_data);
 
     let query_string = "Romeo, Romeo, where you at, Romeo? \
 Did you just flip me off, my guy? \
@@ -65,22 +98,23 @@ But daddy I love him!";
 
     let query_embeddings = convert_doc_to_f32(&query_string.to_string(), MAX_LENGTH);
 
-    println!("Collection has a total size of {}", collection.len());
+    println!("Euclidean Collection has a total size of {}", euclidean_collection.len());
+    println!("Cosine Collection has a total size of {}", cosine_collection.len());
 
     for (i, embedding) in query_embeddings.iter().enumerate() {
-        let neighbors = collection.nearest_neighbors(embedding);
-        match neighbors {
-            None => println!("No neighbors found for query #{i}!"),
-            Some(n) => println!("{} neighbors found for query #{i}!", n.len()),
-        }
+        println!("Euclidean");
+        test_neighbors(&euclidean_collection, i, &embedding);
+        println!("Cosine");
+        test_neighbors(&cosine_collection, i, &embedding);
 
-        let closest_neighbor = collection.closest_neighbor(embedding);
-        match closest_neighbor {
-            None => println!("No closest neighbor found for query #{i}!"),
-            Some(c) => println!(
-                "Closest neighbor to query #{i} had a sum of {}!",
-                c.iter().sum::<f32>()
-            ),
-        }
+        println!("Euclidean");
+        test_k_neighbors(&euclidean_collection, i, &embedding);
+        println!("Cosine");
+        test_k_neighbors(&cosine_collection, i, &embedding);
+
+        println!("Euclidean");
+        test_closest_neighbor(&euclidean_collection, i, &embedding);
+        println!("Cosine");
+        test_closest_neighbor(&cosine_collection, i, &embedding);
     }
 }
