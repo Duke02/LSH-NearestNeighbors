@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "nightly", feature(test))]
+
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -7,6 +9,8 @@ use crate::lshashtable::LSHashTable;
 mod lshash;
 mod lshashtable;
 mod utils;
+#[cfg(feature = "nightly")]
+mod tests;
 
 fn z_score(vec: &Vec<f32>) -> Vec<f32> {
     let mean = vec.iter().sum::<f32>() / vec.len() as f32;
@@ -118,3 +122,4 @@ But daddy I love him!";
         test_closest_neighbor(&cosine_collection, i, &embedding);
     }
 }
+
