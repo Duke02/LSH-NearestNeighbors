@@ -33,7 +33,7 @@ impl EuclideanHash {
     }
 
     pub fn new_with_optimal_bin_width(num_bits: u8, sample_data: &Vec<Vec<f32>>) -> Self {
-        let start = EuclideanHash::new(num_bits, sample_data[0].len(), 0.0);
+        let start = EuclideanHash::new(num_bits, sample_data[0].len(), 0.5);
         let distances = sample_data
             .iter()
             .permutations(2)
