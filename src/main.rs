@@ -2,9 +2,11 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use crate::lsh::Lsh;
+use crate::lshashtable::LSHashTable;
 
-mod lsh;
+mod lshash;
+mod lshashtable;
+mod utils;
 
 fn z_score(vec: &Vec<f32>) -> Vec<f32> {
     let mean = vec.iter().sum::<f32>() / vec.len() as f32;
@@ -48,7 +50,9 @@ fn main() {
         MAX_LENGTH,
     );
 
-    let mut collection = Lsh::new(MAX_LENGTH, NUM_BITS);
+    let euclidean_hasher = lshash::EuclideanHash::new_with_optimal_bin_width(NUM_BITS, &data);
+
+    let mut collection = LSHashTable::new(euclidean_hasher, MAX_LENGTH, NUM_BITS);
 
     for embedding in data {
         collection.insert(embedding);
@@ -73,8 +77,10 @@ But daddy I love him!";
         let closest_neighbor = collection.closest_neighbor(embedding);
         match closest_neighbor {
             None => println!("No closest neighbor found for query #{i}!"),
-            Some(c) => println!("Closest neighbor to query #{i} had a sum of {}!", c.iter().sum::<f32>()),
+            Some(c) => println!(
+                "Closest neighbor to query #{i} had a sum of {}!",
+                c.iter().sum::<f32>()
+            ),
         }
     }
-
 }

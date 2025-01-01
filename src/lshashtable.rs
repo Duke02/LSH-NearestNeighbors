@@ -1,37 +1,21 @@
-use rand::{thread_rng, Rng};
+use crate::lshash::LSHash;
 use itertools::{Itertools, MinMaxResult};
 
-pub struct Lsh {
+pub struct LSHashTable<H: LSHash> {
     buckets: Vec<Vec<Vec<f32>>>,
     num_hashes: usize,
-    projection_matrix: Vec<Vec<f32>>,
     num_buckets: usize,
+    hasher: H,
 }
 
-fn dot(one: &Vec<f32>, two: &Vec<f32>) -> f32 {
-    one.iter().zip(two.iter()).map(|(a, b)| a * b).sum()
-}
-
-fn distance(one: &Vec<f32>, two: &Vec<f32>) -> f32 {
-    // Euclidean distance
-    one.iter()
-        .zip(two.iter())
-        .map(|(a, b)| a - b)
-        .map(|d| f32::powi(d, 2))
-        .sum()
-}
-
-impl Lsh {
-    pub fn new(num_dimensions: usize, num_bits: u8) -> Self {
-        let mut rng = thread_rng();
+impl<H: LSHash> LSHashTable<H> {
+    pub fn new(hasher: H, num_dimensions: usize, num_bits: u8) -> Self {
         let num_buckets: usize = 2 << num_bits as usize;
         Self {
             num_buckets,
             buckets: vec![vec![]; num_buckets],
             num_hashes: 0,
-            projection_matrix: (0..num_bits)
-                .map(|_| (0..num_dimensions).map(|_| rng.gen()).collect())
-                .collect(),
+            hasher,
         }
     }
 
@@ -43,19 +27,8 @@ impl Lsh {
         self.num_hashes
     }
 
-    fn hash(&self, object: &Vec<f32>) -> usize {
-        self.projection_matrix
-            .iter()
-            .map(|proj| dot(proj, object))
-            .map(|r| r > 0.0)
-            .map(|b| if b { 1 } else { 0 })
-            .enumerate()
-            .map(|(i, b)| b << i)
-            .sum()
-    }
-
     fn get_index(&self, object: &Vec<f32>) -> usize {
-        let hash = self.hash(object);
+        let hash = self.hasher.hash(object);
         hash % self.num_buckets
     }
 
@@ -119,6 +92,36 @@ impl Lsh {
         }
     }
 
+    pub fn top_k_neighbors(&self, object: &Vec<f32>, k: usize) -> Option<Vec<Vec<f32>>> {
+        if self.is_empty() {
+            return None;
+        }
+
+        let neighbors = match self.nearest_neighbors(object) {
+            None => {
+                return None;
+            }
+            Some(n) => n,
+        };
+
+        if neighbors.len() <= k {
+            return Some(neighbors);
+        }
+
+        let k_nearest_neighbors = neighbors
+            .iter()
+            .k_smallest_by(k, |n1, n2| {
+                f32::total_cmp(
+                    &self.hasher.distance(n1, object),
+                    &self.hasher.distance(n2, object),
+                )
+            })
+            .map(|n| n.clone())
+            .collect_vec();
+
+        Some(k_nearest_neighbors)
+    }
+
     pub fn closest_neighbor(&self, object: &Vec<f32>) -> Option<Vec<f32>> {
         if self.is_empty() {
             return None;
@@ -126,9 +129,11 @@ impl Lsh {
         let neighbors = self.nearest_neighbors(object);
         match neighbors {
             Some(neighbors) => {
-                let distances = neighbors.iter().map(|n| distance(object, &n)).collect_vec();
-                let closest_index = match distances.iter().position_minmax() {
-                    MinMaxResult::NoElements => {return None;},
+                let distances = neighbors.iter().map(|n| self.hasher.distance(object, &n));
+                let closest_index = match distances.position_minmax() {
+                    MinMaxResult::NoElements => {
+                        return None;
+                    }
                     MinMaxResult::OneElement(i) => i,
                     MinMaxResult::MinMax(mini, _) => mini,
                 };
